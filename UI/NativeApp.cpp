@@ -672,11 +672,11 @@ void NativeInit(int argc, const char *argv[], const char *savegame_dir, const ch
 				if (!strncmp(argv[i], "--pause-menu-exit", strlen("--pause-menu-exit")))
 					g_Config.bPauseMenuExitsEmulator = true;
 				if (!strcmp(argv[i], "--fullscreen")) {
-					g_Config.bFullScreen = true;
+					g_Config.iForceFullScreen = 1;
 					System_SendMessage("toggle_fullscreen", "1");
 				}
 				if (!strcmp(argv[i], "--windowed")) {
-					g_Config.bFullScreen = false;
+					g_Config.iForceFullScreen = 0;
 					System_SendMessage("toggle_fullscreen", "0");
 				}
 				if (!strcmp(argv[i], "--touchscreentest"))
@@ -770,7 +770,7 @@ void NativeInit(int argc, const char *argv[], const char *savegame_dir, const ch
 		// Just gonna force it to the IR interpreter on startup.
 		// We don't hide the option, but we make sure it's off on bootup. In case someone wants
 		// to experiment in future iOS versions or something...
-		g_Config.iCpuCore = (int)CPUCore::IR_JIT;
+		jitForcedOff = true;
 	}
 
 	auto des = GetI18NCategory("DesktopUI");
@@ -849,7 +849,7 @@ void NativeInit(int argc, const char *argv[], const char *savegame_dir, const ch
 	isOuya = KeyMap::IsOuya(sysName);
 
 #if !defined(MOBILE_DEVICE) && defined(USING_QT_UI)
-	MainWindow *mainWindow = new MainWindow(nullptr, g_Config.bFullScreen);
+	MainWindow *mainWindow = new MainWindow(nullptr, g_Config.UseFullScreen());
 	mainWindow->show();
 	if (host == nullptr) {
 		host = new QtHost(mainWindow);
@@ -1465,6 +1465,12 @@ void NativeShutdown() {
 	g_Config.Save("NativeShutdown");
 
 	INFO_LOG(SYSTEM, "NativeShutdown called");
+
+	for (auto &cat : GetI18NMissingKeys()) {
+		for (auto &key : cat.second) {
+			INFO_LOG(SYSTEM, "Missing translation [%s]: %s", cat.first.c_str(), key.c_str());
+		}
+	}
 
 	ShutdownWebServer();
 
